@@ -3,7 +3,7 @@ pipeline{
     stages{
         stage("stage one"){
             steps{
-                sh 'it is the trial pipe'
+                sh 'echo "it is the trial"'
             }
         }
     }
