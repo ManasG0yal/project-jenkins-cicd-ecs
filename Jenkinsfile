@@ -12,23 +12,23 @@ pipeline{
         }
         stage('Build with maven'){
             steps{
-                sh 'mvn install'
+                sh 'mvn install -DskipTest'
             }
-//             post{
-//                 success{
-//                     sh 'echo "the build is successful"'
-//                 }
-//             }
+             post{
+                 success{
+                     sh 'echo "the build is successful"'
+                 }
+             }
         }
-//         stage('Test with maven'){
-//             steps{
-//                 sh 'mvn test'
-//             }
-//         }
-//         stage('checkstyle analysis'){
-//             steps{
-//                 sh 'mvn checkstyle:checkstyle'
-//             }
-//         }
+         stage('Test with maven'){
+             steps{
+                 sh 'mvn test'
+             }
+         }
+         stage('checkstyle analysis'){
+             steps{
+                 sh 'mvn checkstyle:checkstyle'
+             }
+         }
     }
 }
