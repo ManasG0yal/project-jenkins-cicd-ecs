@@ -8,6 +8,8 @@ pipeline {
         registryCredential = 'ecr:us-east-1:awscreds'
         appRegistry = "877147146763.dkr.ecr.us-east-1.amazonaws.com/proj-ecs-cicd"//image name or 
         vprofileRegistry = "https://877147146763.dkr.ecr.us-east-1.amazonaws.com"//registry url
+        cluster = 'jenkins-proj-cluster'
+        service = 'proj-jenkins-ecs-service'
     }
   stages {
     stage('Fetch code'){
@@ -63,16 +65,13 @@ pipeline {
         }
 
     stage('Build App Image') {
-       steps {
-       
+       steps { 
          script {
                 dockerImage = docker.build( appRegistry + ":$BUILD_NUMBER", "./Docker-files/app/multistage/")
              }
-
      }
     
     }
-
     stage('Upload App Image') {
           steps{
             script {
@@ -83,5 +82,13 @@ pipeline {
             }
           }
      }
+     stage('Deploy to ecs'){
+          steps {
+        withAWS(credentials: 'awscreds', region: 'us-east-1') {
+          sh 'aws ecs update-service --cluster ${cluster} --service ${service} --force-new-deployment'
+            }
+        }
+     }
+
   }
 }
