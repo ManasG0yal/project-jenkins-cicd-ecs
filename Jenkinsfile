@@ -2,7 +2,7 @@ pipeline {
     agent any
     tools {
 	    maven "MAVEN3"
-      jdk "OpenJDK"
+      	jdk "OracleJDK8"
 	}
     environment {
         registryCredential = 'ecr:us-east-1:awscreds'
