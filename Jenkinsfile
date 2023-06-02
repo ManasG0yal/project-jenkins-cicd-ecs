@@ -1,40 +1,44 @@
-pipeline{
+pipeline {
     agent any
-    tools{
-        maven "MAVEN3"
-        jdk "OracleJDK8"
+    tools {
+	    maven "MAVEN3"
+      jdk "OpenJDK"
+	}
+    environment {
+        registryCredential = 'ecr:us-east-1:awscreds'
+        appRegistry = "877147146763.dkr.ecr.us-east-1.amazonaws.com/proj-ecs-cicd"//image name or 
+        vprofileRegistry = "https://877147146763.dkr.ecr.us-east-1.amazonaws.com"//registry url
     }
-    stages{
-        stage('Fetch the code'){
-            steps{
-                git branch: 'vp-rem' , url : 'https://github.com/devopshydclub/vprofile-repo.git'
+  stages {
+    stage('Fetch code'){
+      steps {
+        git branch: 'docker', url: 'https://github.com/devopshydclub/vprofile-project.git'
+      }
+    }
+
+
+    stage('Test'){
+      steps {
+        sh 'mvn test'
+      }
+    }
+
+    stage ('CODE ANALYSIS WITH CHECKSTYLE'){
+            steps {
+                sh 'mvn checkstyle:checkstyle'
+            }
+            post {
+                success {
+                    echo 'Generated Analysis Result'
+                }
             }
         }
-        stage('Build with maven'){
-            steps{
-                sh 'mvn install -DskipTest'
-            }
-             post{
-                 success{
-                     sh 'echo "the build is successful"'
-                 }
-             }
-        }
-         stage('Test with maven'){
-             steps{
-                 sh 'mvn test'
-             }
-         }
-         stage('checkstyle analysis'){
-             steps{
-                 sh 'mvn checkstyle:checkstyle'
-             }
-         }
-         stage('pushing to sonarQube'){
-            environment{
-                scannerHome = tool 'Sonar4.7'
-            }
-            steps{
+
+        stage('build && SonarQube analysis') {
+            environment {
+             scannerHome = tool 'Sonar4.7'
+          }
+            steps {
                 withSonarQubeEnv('sonar'){
                     sh ''' 
                     ${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=Proj-ecs \
@@ -48,6 +52,36 @@ pipeline{
                      '''
                 }
             }
-         }
+        }
+
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+    stage('Build App Image') {
+       steps {
+       
+         script {
+                dockerImage = docker.build( appRegistry + ":$BUILD_NUMBER", "./Docker-files/app/multistage/")
+             }
+
+     }
+    
     }
+
+    stage('Upload App Image') {
+          steps{
+            script {
+              docker.withRegistry( vprofileRegistry, registryCredential ) {
+                dockerImage.push("$BUILD_NUMBER")
+                dockerImage.push('latest')
+              }
+            }
+          }
+     }
+  }
 }
